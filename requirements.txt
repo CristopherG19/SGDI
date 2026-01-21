@@ -5,14 +5,14 @@
 
 # GUI y Presentación
 ttkbootstrap==1.10.1
-pillow==10.2.0
+pillow==11.0.0
 
 # Procesamiento de Datos
-pandas==2.2.0
-openpyxl==3.1.2
+pandas==2.2.3
+openpyxl==3.1.5
 
 # QR y Códigos
-qrcode[pil]==7.4.2
+qrcode[pil]==8.0
 pyzbar==0.1.9
 
 # PDF
@@ -20,11 +20,11 @@ PyPDF2==3.0.1
 pdf2image==1.17.0
 
 # Utilidades
-python-dotenv==1.0.0
-loguru==0.7.2
+python-dotenv==1.0.1
+loguru==0.7.3
 
 # Windows (Impresión y sistema)
-pywin32==306
+pywin32==308
 
 # ===================================
 # Dependencias opcionales para fases avanzadas

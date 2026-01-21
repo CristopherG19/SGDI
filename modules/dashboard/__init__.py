@@ -1,1 +1,1 @@
-"""Módulo de SGDI."""
+"""Módulo de dashboard para SGDI."""
