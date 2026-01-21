@@ -1,0 +1,43 @@
+# ===================================
+# SGDI - Sistema de Gestión Documental Integral
+# Requirements.txt - Dependencias del proyecto
+# ===================================
+
+# GUI y Presentación
+ttkbootstrap==1.10.1
+pillow==10.2.0
+
+# Procesamiento de Datos
+pandas==2.2.0
+openpyxl==3.1.2
+
+# QR y Códigos
+qrcode[pil]==7.4.2
+pyzbar==0.1.9
+
+# PDF
+PyPDF2==3.0.1
+pdf2image==1.17.0
+
+# Utilidades
+python-dotenv==1.0.0
+loguru==0.7.2
+
+# Windows (Impresión y sistema)
+pywin32==306
+
+# ===================================
+# Dependencias opcionales para fases avanzadas
+# (Descomentar cuando sea necesario)
+# ===================================
+
+# Base de Datos (Fase avanzada)
+# sqlalchemy==2.0.25
+# alembic==1.13.1
+
+# Testing
+# pytest==7.4.3
+# pytest-cov==4.1.0
+
+# Compilación
+# pyinstaller==6.3.0
