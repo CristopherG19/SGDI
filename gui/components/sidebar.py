@@ -81,6 +81,12 @@ class Sidebar(ttk.Frame):
                 'description': 'Códigos QR simples'
             },
             {
+                'id': 'qr_reader',
+                'icon': '📖',
+                'text': 'Lector QR',
+                'description': 'Leer y renombrar'
+            },
+            {
                 'id': 'file_management',
                 'icon': '📁',
                 'text': 'Archivos',

@@ -98,9 +98,11 @@ class MainWindow:
         
         from modules.dashboard.gui.dashboard_tab import DashboardTab
         from modules.qr_suite.gui.generador_qr_tab import GeneradorQRTab
+        from modules.qr_suite.gui.lector_qr_tab import LectorQRTab
         
         self.register_tab("dashboard", "Dashboard", DashboardTab)
         self.register_tab("qr_generator", "Generador QR", GeneradorQRTab)
+        self.register_tab("qr_reader", "Lector QR", LectorQRTab)
         
         # TODO: Agregar otros módulos cuando estén implementados
         # self.register_tab("qr_suite", "Suite QR", QRSuiteTab)
