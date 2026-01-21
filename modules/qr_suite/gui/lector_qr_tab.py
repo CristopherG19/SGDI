@@ -2,7 +2,32 @@
 SGDI - Tab Lector de QR
 ========================
 
-Interfaz para lectura y renombrado de archivos con códigos QR.
+Interfaz gráfica para lectura y renombrado automático de archivos con códigos QR.
+
+Este módulo proporciona un tab GUI que permite procesar directorios completos
+de archivos PDF e imágenes, leer sus códigos QR, y renombrarlos automáticamente
+basados en el contenido del QR. Incluye procesamiento por lotes con progreso
+en tiempo real y gestión inteligente de duplicados.
+
+Features:
+    - Procesamiento batch de PDFs e imágenes
+    - Renombrado automático basado en contenido QR
+    - Organización: archivos procesados vs. sin QR
+    - Políticas de duplicados configurables
+    - Progreso en tiempo real con logs detallados
+    - Estadísticas de procesamiento
+    - Botón de detención para control manual
+
+UI Components:
+    - Panel de configuración: carpetas de entrada/salida/error
+    - Panel de control: opciones de duplicados, botones de acción
+    - Panel de logs: seguimiento en tiempo real del procesamiento
+
+Author:
+    SGDI Development Team
+
+Version:
+    1.0.0
 """
 
 import tkinter as tk
@@ -20,10 +45,46 @@ log = get_logger(__name__)
 
 
 class LectorQRTab(ttk.Frame):
-    """Tab para lectura y renombrado con QR."""
+    """Tab GUI para lectura de QR y renombrado automático de archivos.
+    
+    Proporciona una interfaz completa para procesar directorios de archivos
+    (PDFs e imágenes), leer sus códigos QR, renombrarlos automáticamente usando
+    el contenido del QR, y organizarlos en carpetas separadas según tengan o
+    no código QR. Incluye logs en tiempo real y estadísticas de procesamiento.
+    
+    Attributes:
+        reader (QRReader): Instancia del servicio lector de QR
+        is_processing (bool): Bandera indicando si hay un proceso en curso
+        folder_input (tk.StringVar): Variable para carpeta de entrada
+        folder_output (tk.StringVar): Variable para carpeta de procesados
+        folder_error (tk.StringVar): Variable para carpeta de errores
+        use_poppler (tk.BooleanVar): Si usar poppler para PDFs
+        poppler_path (tk.StringVar): Ruta a poppler en Windows
+        duplicate_policy (tk.StringVar): Política de duplicados
+        stats (dict): Estadísticas del último procesamiento
+    
+    Example:
+        >>> from tkinter import Tk
+        >>> root = Tk()
+        >>> tab = LectorQRTab(root)
+        >>> tab.pack()
+    
+    Note:
+        - Los archivos sin QR se mueven a folder_error
+        - Los archivos exitosos se renombran y mueven a folder_output
+        - El procesamiento se ejecuta en un thread separado para no bloquear UI
+    """
     
     def __init__(self, parent):
-        """Inicializa el tab de lector QR."""
+        """Inicializa el tab lector de QR con todos sus componentes.
+        
+        Configura las variables de control, instancia el servicio lector,
+        y construye la interfaz gráfica completa con paneles de configuración,
+        control y logs.
+        
+        Args:
+            parent (tk.Widget): Widget padre (generalmente un Notebook o Frame).
+        """
         super().__init__(parent, padding=20)
         
         self.reader = QRReader()

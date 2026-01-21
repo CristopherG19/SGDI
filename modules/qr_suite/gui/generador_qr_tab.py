@@ -2,7 +2,29 @@
 SGDI - Tab Generador de QR
 ===========================
 
-Interfaz para generación simple de códigos QR.
+Interfaz gráfica para generación simple e interactiva de códigos QR.
+
+Este módulo proporciona un tab GUI para la ventana principal que permite
+generar códigos QR de forma individual o en lote, con configuración
+personalizable de tamaño, corrección de errores, y vista previa en tiempo real.
+
+Features:
+    - Generación individual o por lotes (separados por '|')
+    - Vista previa en tiempo real del QR generado
+    - Configuración de tamaño (100-1000 px)
+    - Niveles de corrección de errores ajustables
+    - Exportación con nombres personalizados
+    - Barra de progreso para generación por lotes
+
+UI Components:
+    - Panel de configuración (izquierda): entrada de texto, opciones
+    - Panel de vista previa (derecha): visualización del QR generado
+
+Author:
+    SGDI Development Team
+
+Version:
+    1.0.0
 """
 
 import tkinter as tk
@@ -21,14 +43,41 @@ log = get_logger(__name__)
 
 
 class GeneradorQRTab(ttk.Frame):
-    """Tab para generación simple de códigos QR."""
+    """Tab GUI para generación interactiva de códigos QR.
+    
+    Proporciona una interfaz completa para generar códigos QR con vista previa
+    en tiempo real. Soporta generación individual y por lotes con configuración
+    avanzada de tamaño y corrección de errores.
+    
+    Attributes:
+        generator (QRGenerator): Instancia del servicio generador de QR
+        current_preview_path (str): Ruta del último QR generado para preview
+        texto_qr (tk.StringVar): Variable para el contenido del QR
+        carpeta_salida (tk.StringVar): Variable para carpeta de exportación
+        tamano (tk.IntVar): Variable para tamaño del QR (100-1000 px)
+        error_correction (tk.StringVar): Nivel de corrección ('L','M','Q','H')
+        error_correction_display (tk.StringVar): Texto visible del nivel
+    
+    Example:
+        >>> from tkinter import Tk
+        >>> root = Tk()
+        >>> tab = GeneradorQRTab(root)
+        >>> tab.pack()
+    
+    Note:
+        Este tab se integra con MainWindow a través del sidebar.
+        Los QRs generados se guardan por defecto en Settings.EXPORTS_DIR.
+    """
     
     def __init__(self, parent):
-        """
-        Inicializa el tab de generador QR.
+        """Inicializa el tab generador de QR con todos sus componentes.
+        
+        Configura las variables de control, instancia el servicio generador,
+        y construye la interfaz gráfica completa con paneles de configuración
+        y vista previa.
         
         Args:
-            parent: Widget padre
+            parent (tk.Widget): Widget padre (generalmente un Notebook o Frame).
         """
         super().__init__(parent, padding=20)
         

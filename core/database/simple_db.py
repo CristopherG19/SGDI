@@ -210,12 +210,15 @@ class Database:
         }
         return self.insert('system_logs', data)
     
-    def save_generated_code(self, code: str, article_name: str, 
+    def save_generated_code(self, code: str, article_name: str = "", 
+                           meter_serial: str = "", service_type: str = "",
                            excel_path: str = None, notes: str = None) -> int:
-        """Guarda un código generado."""
+        """Guarda un código generado con columnas separadas."""
         data = {
             'code': code,
             'article_name': article_name,
+            'meter_serial': meter_serial,
+            'service_type': service_type,
             'exported_to_excel': 1 if excel_path else 0,
             'excel_export_path': excel_path,
             'notes': notes

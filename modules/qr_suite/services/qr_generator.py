@@ -3,6 +3,36 @@ SGDI - Servicio Generador de QR
 ================================
 
 Servicio para generación de códigos QR individual y en batch.
+
+Este módulo proporciona funcionalidades completas para la generación de códigos QR,
+incluyendo generación individual, por lotes en paralelo, y códigos QR con logos
+personalizados. Todos los códigos QR generados son imágenes PNG con configuración
+personalizable de tamaño, corrección de errores y bordes.
+
+Examples:
+    Generación simple de un código QR::
+
+        generator = QRGenerator()
+        success, path = generator.generate_single(
+            content="https://ejemplo.com",
+            output_path="./qr_code.png",
+            size=300
+        )
+
+    Generación por lotes::
+
+        urls = ["url1", "url2", "url3"]
+        results = generator.generate_batch(
+            contents=urls,
+            output_folder="./qr_codes/",
+            prefix="qr_"
+        )
+
+Author:
+    SGDI Development Team
+
+Version:
+    1.0.0
 """
 
 import qrcode
@@ -20,10 +50,34 @@ log = get_logger(__name__)
 
 
 class QRGenerator:
-    """Generador de códigos QR."""
+    """Generador profesional de códigos QR con soporte para batch y personalización.
+    
+    Esta clase proporciona métodos para generar códigos QR individuales o en lote,
+    con opciones avanzadas como niveles de corrección de errores configurables,
+    tamaños personalizados, y soporte para agregar logos en el centro del QR.
+    Todas las operaciones se registran automáticamente en la base de datos para
+    auditoría y seguimiento.
+    
+    Attributes:
+        db: Instancia de la base de datos para registro de operaciones
+    
+    Example:
+        >>> generator = QRGenerator()
+        >>> success, path = generator.generate_single(
+        ...     content="Hola Mundo",
+        ...     output_path="qr.png",
+        ...     size=300,
+        ...     error_correction='M'
+        ... )
+        >>> print(f"QR generado: {path}" if success else "Error")
+    """
     
     def __init__(self):
-        """Inicializa el generador de QR."""
+        """Inicializa el generador de QR.
+        
+        Configura la conexión a la base de datos para el registro
+        automático de todas las operaciones de generación.
+        """
         self.db = get_db()
     
     def generate_single(self, 
@@ -32,18 +86,55 @@ class QRGenerator:
                        size: int = None,
                        error_correction: str = 'L',
                        border: int = 1) -> Tuple[bool, str]:
-        """
-        Genera un código QR individual.
+        """Genera un código QR individual con configuración personalizada.
+        
+        Crea un código QR a partir del contenido proporcionado y lo guarda
+        como imagen PNG. El tamaño se ajusta automáticamente si no se especifica.
+        La operación se registra en la base de datos para auditoría.
         
         Args:
-            content: Contenido del QR
-            output_path: Ruta donde guardar el QR
-            size: Tamaño en píxeles (None = auto)
-            error_correction: Nivel de corrección ('L', 'M', 'Q', 'H')
-            border: Grosor del borde en cajas
+            content (str): Texto o datos a codificar en el QR. No debe estar vacío.
+            output_path (str | Path): Ruta completa donde guardar el archivo QR.
+                Se creará el directorio padre si no existe.
+            size (int, optional): Tamaño del QR en píxeles (ancho y alto).
+                Si es None, se calcula automáticamente. Defaults to None.
+            error_correction (str, optional): Nivel de corrección de errores.
+                Opciones:
+                    - 'L': ~7% recuperable
+                    - 'M': ~15% recuperable
+                    - 'Q': ~25% recuperable
+                    - 'H': ~30% recuperable (recomendado para QR con logo)
+                Defaults to 'L'.
+            border (int, optional): Grosor del borde blanco en cajas QR.
+                Mínimo recomendado: 1. Defaults to 1.
             
         Returns:
-            Tupla (éxito, mensaje/ruta)
+            Tuple[bool, str]: Una tupla con:
+                - bool: True si la generación fue exitosa, False en caso contrario
+                - str: Ruta del archivo generado si exitoso, mensaje de error si falló
+        
+        Raises:
+            No lanza excepciones directamente, pero captura y registra errores
+            internos retornando (False, mensaje_error).
+        
+        Example:
+            >>> generator = QRGenerator()
+            >>> success, result = generator.generate_single(
+            ...     content="https://github.com",
+            ...     output_path="./output/github_qr.png",
+            ...     size=500,
+            ...     error_correction='H',
+            ...     border=2
+            ... )
+            >>> if success:
+            ...     print(f"QR guardado en: {result}")
+            ... else:
+            ...     print(f"Error: {result}")
+        
+        Note:
+            - El contenido se trunca a 100 caracteres en los logs de base de datos
+            - Los directorios intermedios se crean automáticamente
+            - La imagen se genera con fondo blanco y código negro
         """
         try:
             if not content.strip():
@@ -120,19 +211,54 @@ class QRGenerator:
                       prefix: str = "qr_",
                       max_workers: int = 4,
                       progress_callback: Optional[callable] = None) -> Dict[int, str]:
-        """
-        Genera múltiples códigos QR en paralelo.
+        """Genera múltiples códigos QR en paralelo para optimizar el rendimiento.
+        
+        Procesa una lista de contenidos y genera códigos QR de forma paralela
+        utilizando ThreadPoolExecutor. Los códigos QR se nombran automáticamente
+        con un prefijo y un índice numérico. Las entradas vacías se filtran
+        automáticamente.
         
         Args:
-            contents: Lista de contenidos para generar QRs
-            output_folder: Carpeta donde guardar los QRs
-            size: Tamaño en píxeles
-            prefix: Prefijo para nombres de archivo
-            max_workers: Número de hilos paralelos
-            progress_callback: Callback para reportar progreso (idx, total)
+            contents (List[str]): Lista de textos o datos para codificar en QR.
+                Los elementos vacíos o solo con espacios se ignoran automáticamente.
+            output_folder (str | Path): Directorio donde guardar todos los QRs.
+                Se crea automáticamente si no existe.
+            size (int, optional): Tamaño de cada QR en píxeles. Si es None,
+                se calcula automáticamente por cada QR. Defaults to None.
+            prefix (str, optional): Prefijo para los nombres de archivo.
+                Los archivos se nombrarán como "{prefix}{índice}.png".
+                Defaults to "qr_".
+            max_workers (int, optional): Número máximo de threads paralelos.
+                Valores más altos aceleran la generación pero consumen más CPU.
+                Defaults to 4.
+            progress_callback (callable, optional): Función que se llama después
+                de generar cada QR. Debe aceptar dos parámetros: (actual, total).
+                Útil para actualizar barras de progreso. Defaults to None.
             
         Returns:
-            Diccionario {índice: ruta_archivo}
+            Dict[int, str]: Diccionario mapeando índices originales a rutas de
+                archivos generados exitosamente. Solo incluye QRs exitosos.
+        
+        Example:
+            >>> generator = QRGenerator()
+            >>> def progreso(actual, total):
+            ...     print(f"Progreso: {actual}/{total}")
+            >>> 
+            >>> urls = ["url1", "url2", "url3", "", "url5"]  # url4 vacía
+            >>> resultados = generator.generate_batch(
+            ...     contents=urls,
+            ...     output_folder="./batch_qrs/",
+            ...     prefix="url_",
+            ...     max_workers=2,
+            ...     progress_callback=progreso
+            ... )
+            >>> print(f"Generados {len(resultados)} de {len(urls)} QRs")
+        
+        Note:
+            - Las entradas vacías o None se filtran automáticamente
+            - La operación completa se registra en la base de datos
+            - Si algunos QRs fallan, el proceso continúa con los demás
+            - El tiempo total de procesamiento se registra para estadísticas
         """
         import time
         start_time = time.time()
@@ -201,14 +327,27 @@ class QRGenerator:
         return results
     
     def _generate_worker(self, args: tuple) -> Tuple[int, str, bool]:
-        """
-        Worker para generación paralela.
+        """Worker interno para generación paralela de QRs.
+        
+        Función ejecutada por cada thread en generate_batch. Genera un QR
+        individual y retorna el resultado con su índice para mantener el orden.
         
         Args:
-            args: (índice, contenido, ruta_salida, tamaño)
+            args (tuple): Tupla de 4 elementos:
+                - idx (int): Índice del QR en la lista original
+                - content (str): Contenido a codificar
+                - output_path (Path): Ruta completa de salida
+                - size (int): Tamaño del QR en píxeles
             
         Returns:
-            Tupla (índice, ruta, éxito)
+            Tuple[int, str, bool]: Tupla con:
+                - int: Índice original del QR
+                - str: Ruta del archivo generado o None si falló
+                - bool: True si la generación fue exitosa, False si falló
+        
+        Note:
+            Este método es privado y no debe ser llamado directamente.
+            Es utilizado internamente por generate_batch.
         """
         idx, content, output_path, size = args
         
@@ -224,17 +363,41 @@ class QRGenerator:
                           output_path: str | Path,
                           logo_path: str | Path,
                           size: int = 300) -> Tuple[bool, str]:
-        """
-        Genera un QR con logo en el centro.
+        """Genera un código QR con un logo personalizado en el centro.
+        
+        Crea un QR con nivel alto de corrección de errores ('H') y superpone
+        una imagen de logo en el centro. El logo se redimensiona automáticamente
+        al 20% del tamaño total del QR para mantener la legibilidad.
         
         Args:
-            content: Contenido del QR
-            output_path: Ruta de salida
-            logo_path: Ruta del logo
-            size: Tamaño final
+            content (str): Texto o datos a codificar en el QR.
+            output_path (str | Path): Ruta donde guardar el QR con logo.
+            logo_path (str | Path): Ruta de la imagen del logo a insertar.
+                Debe ser un archivo de imagen válido (PNG, JPG, etc.).
+            size (int, optional): Tamaño final del QR en píxeles (ancho y alto).
+                Defaults to 300.
             
         Returns:
-            Tupla (éxito, mensaje)
+            Tuple[bool, str]: Una tupla con:
+                - bool: True si la generación fue exitosa, False en caso contrario
+                - str: Ruta del archivo generado si exitoso, mensaje de error si falló
+        
+        Example:
+            >>> generator = QRGenerator()
+            >>> success, result = generator.generate_with_logo(
+            ...     content="https://miempresa.com",
+            ...     output_path="./qr_logo.png",
+            ...     logo_path="./assets/logo.png",
+            ...     size=500
+            ... )
+        
+        Note:
+            - Se usa corrección de errores nivel 'H' (30%) para compensar
+              el área ocupada por el logo
+            - El logo se redimensiona proporcionalmente al 20% del tamaño del QR
+            - El logo se centra automáticamente en el QR
+            - Asegúrese de que el logo no sea demasiado complejo para mantener
+              la legibilidad del QR
         """
         try:
             # Generar QR base
