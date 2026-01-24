@@ -32,7 +32,7 @@ def migrate_inacal_codes():
     log.info("="*60)
     
     inacal_file = Settings.INACAL_CODES_PATH
-   log.info(f"Archivo fuente: {inacal_file}")
+    log.info(f"Archivo fuente: {inacal_file}")
     
     # Verificar que el archivo existe
     if not os.path.exists(inacal_file):

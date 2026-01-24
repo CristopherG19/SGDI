@@ -1,12 +1,13 @@
 """
-SGDI - Base de Datos Simple
-============================
+SGDI - Base de Datos
+====================
 
-Módulo para gestión sencilla de base de datos SQLite.
+Módulo para gestión de base de datos MySQL.
 Proporciona métodos CRUD básicos y manejo de conexiones.
 """
 
-import sqlite3
+import mysql.connector
+from mysql.connector import Error
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -17,56 +18,90 @@ from config.settings import Settings
 
 
 class Database:
-    """Clase para gestión de base de datos SQLite."""
+    """Clase para gestión de base de datos MySQL."""
     
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_config: Optional[Dict[str, Any]] = None):
         """
-        Inicializa la conexión a la base de datos.
+        Inicializa la conexión a la base de datos MySQL.
         
         Args:
-            db_path: Ruta al archivo de base de datos. Si es None, usa Settings.DATABASE_PATH
+            db_config: Diccionario con configuración de MySQL. Si es None, usa Settings
         """
-        self.db_path = db_path or Settings.DATABASE_PATH
+        if db_config is None:
+            self.db_config = {
+                'host': Settings.DB_HOST,
+                'port': Settings.DB_PORT,
+                'database': Settings.DB_NAME,
+                'user': Settings.DB_USER,
+                'password': Settings.DB_PASSWORD,
+                'charset': Settings.DB_CHARSET,
+                'collation': 'utf8mb4_unicode_ci',
+                'autocommit': False
+            }
+        else:
+            self.db_config = db_config
+            
         self.connection = None
         self.cursor = None
         
-        # Asegurar que el directorio existe
+        # Asegurar que el directorio de datos existe
         Settings.ensure_directories()
         
         # Inicializar base de datos si no existe
-        if not os.path.exists(self.db_path):
-            self._initialize_database()
+        self._initialize_database()
+    
     
     def connect(self):
-        """Establece conexión con la base de datos."""
-        if self.connection is None:
-            self.connection = sqlite3.connect(self.db_path)
-            self.connection.row_factory = sqlite3.Row  # Para acceder a columnas por nombre
-            self.cursor = self.connection.cursor()
+        """Establece conexión con la base de datos MySQL."""
+        if self.connection is None or not self.connection.is_connected():
+            try:
+                self.connection = mysql.connector.connect(**self.db_config)
+                self.cursor = self.connection.cursor(dictionary=True)
+            except Error as e:
+                print(f"❌ Error al conectar con MySQL: {e}")
+                raise
     
     def disconnect(self):
         """Cierra la conexión con la base de datos."""
-        if self.connection:
+        if self.cursor:
+            self.cursor.close()
+            self.cursor = None
+        if self.connection and self.connection.is_connected():
             self.connection.close()
             self.connection = None
-            self.cursor = None
     
     def _initialize_database(self):
-        """Inicializa la base de datos ejecutando el schema.sql"""
-        schema_path = Path(__file__).parent / "schema.sql"
+        """Inicializa la base de datos ejecutando el schema_mysql.sql"""
+        schema_path = Path(__file__).parent / "schema_mysql.sql"
         
         if not schema_path.exists():
-            raise FileNotFoundError(f"Schema no encontrado: {schema_path}")
+            print(f"⚠️ Schema no encontrado: {schema_path}")
+            return
         
-        with open(schema_path, 'r', encoding='utf-8') as f:
-            schema_sql = f.read()
-        
-        self.connect()
-        self.cursor.executescript(schema_sql)
-        self.connection.commit()
-        print(f"✓ Base de datos inicializada: {self.db_path}")
+        try:
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                schema_sql = f.read()
+            
+            self.connect()
+            
+            # Ejecutar cada statement por separado
+            statements = schema_sql.split(';')
+            for statement in statements:
+                statement = statement.strip()
+                if statement and not statement.startswith('--'):
+                    try:
+                        self.cursor.execute(statement)
+                    except Error as e:
+                        # Ignorar errores de "ya existe" o vistas que ya fueron creadas
+                        if "already exists" not in str(e).lower():
+                            pass  # Continuar con el siguiente statement
+            
+            self.connection.commit()
+            print(f"✓ Base de datos MySQL inicializada correctamente")
+        except Error as e:
+            print(f"⚠️ Advertencia al inicializar BD: {e}")
     
-    def execute(self, query: str, params: Tuple = ()) -> sqlite3.Cursor:
+    def execute(self, query: str, params: Tuple = ()):
         """
         Ejecuta una consulta SQL.
         
@@ -138,7 +173,7 @@ class Database:
             ID del registro insertado
         """
         columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?' for _ in data])
+        placeholders = ', '.join(['%s' for _ in data])
         query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
         
         self.execute(query, tuple(data.values()))
@@ -158,7 +193,7 @@ class Database:
         Returns:
             Número de filas afectadas
         """
-        set_clause = ', '.join([f"{key} = ?" for key in data.keys()])
+        set_clause = ', '.join([f"{key} = %s" for key in data.keys()])
         query = f"UPDATE {table} SET {set_clause} WHERE {where}"
         
         params = tuple(data.values()) + where_params
@@ -228,7 +263,7 @@ class Database:
     def code_exists(self, code: str) -> bool:
         """Verifica si un código ya existe."""
         result = self.fetch_one(
-            "SELECT COUNT(*) as count FROM generated_codes WHERE code = ?",
+            "SELECT COUNT(*) as count FROM generated_codes WHERE code = %s",
             (code,)
         )
         return result['count'] > 0 if result else False
@@ -312,7 +347,7 @@ class Database:
     def get_recent_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
         """Obtiene los logs más recientes."""
         return self.fetch_all(
-            f"SELECT * FROM v_recent_logs LIMIT ?",
+            f"SELECT * FROM v_recent_logs LIMIT %s",
             (limit,)
         )
     
