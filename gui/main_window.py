@@ -99,11 +99,19 @@ class MainWindow:
         from modules.dashboard.gui.dashboard_tab import DashboardTab
         from modules.qr_suite.gui.generador_qr_tab import GeneradorQRTab
         from modules.qr_suite.gui.lector_qr_tab import LectorQRTab
+        from modules.qr_suite.gui.procesador_excel_tab import ProcesadorExcelTab
         from modules.code_generator.gui.code_generator_tab import CodeGeneratorTab
+        from modules.file_management.gui.file_search_tab import FileSearchTab
+        from modules.pdf_tools.gui.pdf_compressor_tab import PDFCompressorTab
+        from modules.file_auditor.gui.auditor_tab import FileAuditorTab
         
         self.register_tab("dashboard", "Dashboard", DashboardTab)
         self.register_tab("qr_generator", "Generador QR", GeneradorQRTab)
         self.register_tab("qr_reader", "Lector QR", LectorQRTab)
+        self.register_tab("excel_processor", "Procesador Excel", ProcesadorExcelTab)
+        self.register_tab("file_search", "Buscador Archivos", FileSearchTab)
+        self.register_tab("pdf_compressor", "Compresor PDF", PDFCompressorTab)
+        self.register_tab("file_auditor", "Auditor Archivos", FileAuditorTab)
         self.register_tab("code_generator", "Códigos INACAL", CodeGeneratorTab)
         
         # TODO: Agregar otros módulos cuando estén implementados

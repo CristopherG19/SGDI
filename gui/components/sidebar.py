@@ -87,22 +87,28 @@ class Sidebar(ttk.Frame):
                 'description': 'Leer y renombrar'
             },
             {
-                'id': 'file_management',
-                'icon': '📁',
-                'text': 'Archivos',
-                'description': 'Búsqueda y gestión'
+                'id': 'excel_processor',
+                'icon': '📊',
+                'text': 'Procesador Excel',
+                'description': 'Excel + QR + PDF'
             },
             {
-                'id': 'pdf_tools',
+                'id': 'file_search',
+                'icon': '🔍',
+                'text': 'Buscador',
+                'description': 'Búsqueda y copia archivos'
+            },
+            {
+                'id': 'pdf_compressor',
                 'icon': '📄',
-                'text': 'PDF Tools',
-                'description': 'Compresión'
+                'text': 'Compresor PDF',
+                'description': 'Compresión de PDFs'
             },
             {
                 'id': 'file_auditor',
                 'icon': '🔍',
-                'text': 'Auditoría',
-                'description': 'Verificación'
+                'text': 'Auditor',
+                'description': 'Verificación de archivos'
             },
             {
                 'id': 'code_generator',
@@ -137,7 +143,7 @@ class Sidebar(ttk.Frame):
             btn_frame,
             text=f"{item['icon']}  {item['text']}",
             command=lambda: self._on_menu_click(item['id']),
-            bootstyle="secondary-outline",
+            bootstyle="light-outline",
             cursor="hand2"
         )
         btn.pack(fill=X, ipady=8)
@@ -172,7 +178,7 @@ class Sidebar(ttk.Frame):
         # Resetear estilo del botón anterior
         if self.current_button and self.current_button in self.buttons:
             self.buttons[self.current_button].config(
-                bootstyle="secondary-outline"
+                bootstyle="light-outline"
             )
         
         # Aplicar estilo activo al botón actual
@@ -195,7 +201,7 @@ class Sidebar(ttk.Frame):
             footer_frame,
             text="Sistema de Gestión\nDocumental Integral",
             font=("Segoe UI", 8),
-            bootstyle="secondary",
+            bootstyle="light",
             justify=CENTER
         ).pack()
     

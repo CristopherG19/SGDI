@@ -89,7 +89,7 @@ class Header(ttk.Frame):
         self.clock_label = ttk.Label(
             right_frame,
             text="",
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 11, "bold"),
             bootstyle="inverse-primary"
         )
         self.clock_label.pack(side=RIGHT, padx=(15, 0))
