@@ -1,8 +1,8 @@
 """
-SGDI - Dashboard
-================
+SGDI - Dashboard Avanzado
+==========================
 
-Panel de control con métricas y estadísticas del sistema.
+Panel de control con gráficos y métricas reales del sistema.
 """
 
 import ttkbootstrap as ttk
@@ -11,23 +11,22 @@ from datetime import datetime
 
 from core.database.simple_db import get_db
 from core.utils.logger import get_logger
+from config.settings import Settings
+from modules.dashboard.services.stats_analyzer import StatsAnalyzer
+from modules.dashboard.widgets.chart_widget import ChartWidget
 
 log = get_logger(__name__)
 
 
 class DashboardTab(ttk.Frame):
-    """Tab del Dashboard principal."""
+    """Tab del Dashboard con gráficos y métricas reales."""
     
     def __init__(self, parent):
-        """
-        Inicializa el dashboard.
-        
-        Args:
-            parent: Widget padre
-        """
+        """Inicializa el dashboard."""
         super().__init__(parent, padding=20)
         
         self.db = get_db()
+        self.analyzer = StatsAnalyzer()
         
         # Configurar grid
         self.columnconfigure(0, weight=1)
@@ -36,15 +35,16 @@ class DashboardTab(ttk.Frame):
         # Crear componentes
         self._create_header()
         self._create_stats_cards()
-        self._create_recent_activity()
+        self._create_charts()
+        self._create_activity_section()
         
         # Cargar datos iniciales
         self.refresh()
         
-        log.debug("Dashboard inicializado")
+        log.debug("Dashboard avanzado inicializado")
     
     def _create_header(self):
-        """Crea el encabezado del dashboard."""
+        """Crea el encabezado."""
         header_frame = ttk.Frame(self)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 20))
         
@@ -62,257 +62,220 @@ class DashboardTab(ttk.Frame):
             font=("Segoe UI", 9),
             bootstyle="secondary"
         )
-        self.last_update_label.pack(side=RIGHT, padx=10)
+        self.last_update_label.pack(side=RIGHT)
     
     def _create_stats_cards(self):
         """Crea las tarjetas de estadísticas."""
-        # Frame para las tarjetas
         stats_frame = ttk.Frame(self)
-        stats_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 20))
+        stats_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 15))
         
-        # Configurar columnas
         for i in range(4):
             stats_frame.columnconfigure(i, weight=1)
         
-        # Tarjeta 1: Códigos Generados
+        # Tarjetas
         self.codes_card = self._create_stat_card(
-            stats_frame,
-            "🔢 Códigos Generados",
-            "0",
-            "Total en el sistema",
-            "primary",
-            0
+            stats_frame, "🔢 Códigos INACAL", "0", "Total", "primary", 0
         )
         
-        # Tarjeta 2: Operaciones QR Hoy
         self.qr_card = self._create_stat_card(
-            stats_frame,
-            "🔲 Operaciones QR",
-            "0",
-            "Hoy",
-            "info",
-            1
+            stats_frame, "🔲 QR Generados", "0", "Total", "info", 1
         )
         
-        # Tarjeta 3: Espacio Ahorrado
         self.space_card = self._create_stat_card(
-            stats_frame,
-            "💾 Espacio Ahorrado",
-            "0 MB",
-            "Compresiones PDF",
-            "success",
-            2
+            stats_frame, "💾 Espacio Ahorrado", "0 MB", "PDFs", "success", 2
         )
         
-        # Tarjeta 4: Búsquedas Hoy
-        self.searches_card = self._create_stat_card(
-            stats_frame,
-            "🔍 Búsquedas",
-            "0",
-            "Hoy",
-            "warning",
-            3
+        self.files_card = self._create_stat_card(
+            stats_frame, "🔍 Archivos Hallados", "0", "Total", "warning", 3
         )
     
     def _create_stat_card(self, parent, title, value, subtitle, style, column):
-        """
-        Crea una tarjeta de estadística.
-        
-        Args:
-            parent: Widget padre
-            title: Título de la tarjeta
-            value: Valor a mostrar
-            subtitle: Subtítulo
-            style: Estilo (primary, info, success, warning)
-            column: Columna donde colocar
-            
-        Returns:
-            Diccionario con referencias a los labels
-        """
+        """Crea una tarjeta de estadística."""
         card_frame = ttk.LabelFrame(
             parent,
             text=title,
-            padding=15,
+            padding=12,
             bootstyle=style
         )
         card_frame.grid(row=0, column=column, sticky="ew", padx=5)
         
-        # Valor principal
         value_label = ttk.Label(
             card_frame,
             text=value,
-            font=("Segoe UI", 32, "bold"),
+            font=("Segoe UI", 28, "bold"),
             bootstyle=style
         )
         value_label.pack()
         
-        # Subtítulo
         subtitle_label = ttk.Label(
             card_frame,
             text=subtitle,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 9),
             bootstyle="secondary"
         )
         subtitle_label.pack()
         
-        return {
-            'frame': card_frame,
-            'value': value_label,
-            'subtitle': subtitle_label
-        }
+        return {'value': value_label, 'subtitle': subtitle_label}
     
-    def _create_recent_activity(self):
-        """Crea la sección de actividad reciente."""
-        # Frame izquierdo: Logs recientes
-        left_frame = ttk.LabelFrame(
+    def _create_charts(self):
+        """Crea los gráficos."""
+        charts_frame = ttk.Frame(self)
+        charts_frame.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=(0, 15))
+        self.rowconfigure(2, weight=1)
+        charts_frame.columnconfigure(0, weight=1)
+        charts_frame.columnconfigure(1, weight=1)
+        
+        # Gráfico 1: Uso de módulos (barras horizontales)
+        chart1_frame = ttk.LabelFrame(
+            charts_frame,
+            text="📈 Uso de Módulos (Top 5)",
+            padding=10
+        )
+        chart1_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        
+        self.module_chart = ChartWidget(chart1_frame, width=400, height=250)
+        self.module_chart.pack(fill=BOTH, expand=YES)
+        
+        # Gráfico 2: Códigos por tipo (pie)
+        chart2_frame = ttk.LabelFrame(
+            charts_frame,
+            text="📊 Códigos INACAL por Tipo",
+            padding=10
+        )
+        chart2_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        
+        self.codes_chart = ChartWidget(chart2_frame, width=400, height=250)
+        self.codes_chart.pack(fill=BOTH, expand=YES)
+    
+    def _create_activity_section(self):
+        """Crea sección de actividad."""
+        activity_frame = ttk.LabelFrame(
             self,
             text="📜 Actividad Reciente",
             padding=15
         )
-        left_frame.grid(row=2, column=0, sticky="nsew", padx=(0, 10))
-        self.rowconfigure(2, weight=1)
+        activity_frame.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self.rowconfigure(3, weight=1)
         
-        # Crear Treeview para logs
-        columns = ('Hora', 'Módulo', 'Acción')
-        self.logs_tree = ttk.Treeview(
-            left_frame,
+        # Treeview
+        columns = ('Hora', 'Módulo', 'Acción', 'Estado')
+        self.activity_tree = ttk.Treeview(
+            activity_frame,
             columns=columns,
             show='headings',
-            height=10,
+            height=6,
             bootstyle="primary"
         )
         
-        # Configurar columnas
-        self.logs_tree.heading('Hora', text='Hora')
-        self.logs_tree.heading('Módulo', text='Módulo')
-        self.logs_tree.heading('Acción', text='Acción')
+        self.activity_tree.heading('Hora', text='Hora')
+        self.activity_tree.heading('Módulo', text='Módulo')
+        self.activity_tree.heading('Acción', text='Acción')
+        self.activity_tree.heading('Estado', text='Estado')
         
-        self.logs_tree.column('Hora', width=120)
-        self.logs_tree.column('Módulo', width=150)
-        self.logs_tree.column('Acción', width=250)
+        self.activity_tree.column('Hora', width=100)
+        self.activity_tree.column('Módulo', width=150)
+        self.activity_tree.column('Acción', width=300)
+        self.activity_tree.column('Estado', width=80)
         
-        # Scrollbar
         scrollbar = ttk.Scrollbar(
-            left_frame,
+            activity_frame,
             orient=VERTICAL,
-            command=self.logs_tree.yview
+            command=self.activity_tree.yview
         )
-        self.logs_tree.configure(yscrollcommand=scrollbar.set)
+        self.activity_tree.configure(yscrollcommand=scrollbar.set)
         
-        # Empaquetar
-        self.logs_tree.pack(side=LEFT, fill=BOTH, expand=YES)
+        self.activity_tree.pack(side=LEFT, fill=BOTH, expand=YES)
         scrollbar.pack(side=RIGHT, fill=Y)
-        
-        # Frame derecho: Información del sistema
-        right_frame = ttk.LabelFrame(
-            self,
-            text="ℹ️ Información del Sistema",
-            padding=15
-        )
-        right_frame.grid(row=2, column=1, sticky="nsew", padx=(10, 0))
-        
-        # Información
-        info_text = f"""
-        Sistema: {Settings.APP_NAME} v{Settings.APP_VERSION}
-        
-        Base de Datos: SQLite
-        Tema: {Settings.THEME}
-        
-        Estado: ✅ Operativo
-        
-        Módulos Disponibles:
-        • Dashboard
-        • Suite QR (En desarrollo)
-        • Gestión de Archivos (En desarrollo)
-        • Herramientas PDF (En desarrollo)
-        • Auditoría de Archivos (En desarrollo)
-        • Generador de Códigos (En desarrollo)
-        
-        Fase actual: 2 - Infraestructura GUI
-        Progreso: ~28%
-        """
-        
-        ttk.Label(
-            right_frame,
-            text=info_text.strip(),
-            font=("Segoe UI", 10),
-            justify=LEFT
-        ).pack(fill=BOTH, expand=YES)
     
     def refresh(self):
-        """Actualiza los datos del dashboard."""
+        """Actualiza todos los datos del dashboard."""
         try:
-            # Obtener estadísticas
-            stats = self.db.get_dashboard_stats()
+            # Obtener resumen completo
+            summary = self.analyzer.get_summary()
             
             # Actualizar tarjetas
-            self.codes_card['value'].config(
-                text=str(stats.get('total_codes_generated', 0))
-            )
+            self._update_cards(summary)
             
-            self.qr_card['value'].config(
-                text=str(stats.get('qr_operations_today', 0))
-            )
+            # Actualizar gráficos
+            self._update_charts(summary)
             
-            space_saved = stats.get('total_space_saved_mb', 0)
-            self.space_card['value'].config(
-                text=f"{space_saved:.1f} MB"
-            )
+            # Actualizar actividad
+            self._update_activity(summary)
             
-            self.searches_card['value'].config(
-                text=str(stats.get('searches_today', 0))
-            )
-            
-            # Actualizar logs recientes
-            self._update_recent_logs()
-            
-            # Actualizar timestamp
+            # Timestamp
             now = datetime.now().strftime("%H:%M:%S")
-            self.last_update_label.config(
-                text=f"Última actualización: {now}"
-            )
+            self.last_update_label.config(text=f"Última actualización: {now}")
             
             log.debug("Dashboard actualizado")
             
         except Exception as e:
-            log.error(f"Error al actualizar dashboard: {e}")
+            log.error(f"Error actualizando dashboard: {e}")
     
-    def _update_recent_logs(self):
-        """Actualiza la lista de logs recientes."""
-        try:
-            # Limpiar árbol
-            for item in self.logs_tree.get_children():
-                self.logs_tree.delete(item)
+    def _update_cards(self, summary: dict):
+        """Actualiza las tarjetas de estadísticas."""
+        # Códigos INACAL
+        codes_total = summary['codes']['total']
+        self.codes_card['value'].config(text=f"{codes_total:,}")
+        
+        # QR
+        qr_total = summary['qr']['total']
+        self.qr_card['value'].config(text=f"{qr_total:,}")
+        
+        # Espacio ahorrado
+        space_mb = summary['file_ops']['space_saved_mb']
+        self.space_card['value'].config(text=f"{space_mb:.1f} MB")
+        
+        # Archivos encontrados
+        files_found = summary['file_ops']['files_found']
+        self.files_card['value'].config(text=f"{files_found:,}")
+    
+    def _update_charts(self, summary: dict):
+        """Actualiza los gráficos."""
+        # Gráfico 1: Uso de módulos
+        module_usage = summary['module_usage'][:5]  # Top 5
+        if module_usage:
+            labels = [m[0] for m in module_usage]
+            values = [m[1] for m in module_usage]
+            self.module_chart.horizontal_bar(labels, values, color='#0d6efd')
+        else:
+            self.module_chart.clear()
+        
+        # Gráfico 2: Códigos por tipo
+        codes_by_type = summary['codes']['by_type']
+        if codes_by_type:
+            labels = list(codes_by_type.keys())
+            values = list(codes_by_type.values())
+            self.codes_chart.pie_chart(labels, values)
+        else:
+            self.codes_chart.clear()
+    
+    def _update_activity(self, summary: dict):
+        """Actualiza actividad reciente."""
+        # Limpiar
+        for item in self.activity_tree.get_children():
+            self.activity_tree.delete(item)
+        
+        # Agregar
+        for activity in summary['recent_activity']:
+            timestamp = activity.get('created_at', '')
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                hora = dt.strftime("%H:%M:%S")
+            except:
+                hora = "--:--:--"
             
-            # Obtener logs recientes
-            logs = self.db.get_recent_logs(limit=20)
+            module = activity.get('module', 'N/A')
+            action = activity.get('action', 'N/A')
+            success = activity.get('success', True)
+            estado = "✓" if success else "✗"
             
-            # Insertar en el árbol
-            for log_entry in logs:
-                # Formatear hora
-                timestamp = log_entry.get('created_at', '')
-                if timestamp:
-                    try:
-                        dt = datetime.fromisoformat(timestamp)
-                        hora = dt.strftime("%H:%M:%S")
-                    except:
-                        hora = timestamp[:8]
-                else:
-                    hora = "--:--:--"
-                
-                module = log_entry.get('module_name', 'N/A')
-                action = log_entry.get('action', 'N/A')
-                
-                # Insertar
-                self.logs_tree.insert(
-                    '',
-                    'end',
-                    values=(hora, module, action)
-                )
-                
-        except Exception as e:
-            log.error(f"Error al actualizar logs: {e}")
-
-
-# Importar Settings para la info
-from config.settings import Settings
+            self.activity_tree.insert(
+                '',
+                'end',
+                values=(hora, module, action, estado),
+                tags=('success' if success else 'error',)
+            )
+        
+        # Colorear
+        self.activity_tree.tag_configure('success', foreground='#28a745')
+        self.activity_tree.tag_configure('error', foreground='#dc3545')
