@@ -26,6 +26,9 @@ loguru==0.7.3
 # Windows (Impresión y sistema)
 pywin32==308
 
+# Base de Datos
+mysql-connector-python==8.3.0
+
 # ===================================
 # Dependencias opcionales para fases avanzadas
 # (Descomentar cuando sea necesario)

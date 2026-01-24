@@ -31,7 +31,16 @@ class Settings:
     DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() == "true"
     
     # Base de Datos
-    DATABASE_PATH = os.getenv("DATABASE_PATH", str(DATABASE_DIR / "sgdi.db"))
+    DB_TYPE = os.getenv("DB_TYPE", "mysql")  # 'sqlite' o 'mysql'
+    DATABASE_PATH = os.getenv("DATABASE_PATH", str(DATABASE_DIR / "sgdi.db"))  # Para SQLite
+    
+    # Configuración MySQL
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = int(os.getenv("DB_PORT", "3306"))
+    DB_NAME = os.getenv("DB_NAME", "sgdi")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "root")
+    DB_CHARSET = os.getenv("DB_CHARSET", "utf8mb4")
     
     # Rutas de Trabajo
     DEFAULT_EXPORT_PATH = os.getenv("DEFAULT_EXPORT_PATH", "C:/SGDI/exports")
