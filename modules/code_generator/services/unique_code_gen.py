@@ -3,7 +3,51 @@ SGDI - Servicio Generador de Códigos INACAL
 ============================================
 
 Servicio para generación de códigos únicos alfanuméricos estilo INACAL.
-Formato: XXXX999999 (4 letras + 6 números = 10 caracteres)
+
+Este módulo proporciona funcionalidades completas para generar códigos de seguridad
+únicos alfanuméricos para medidores de agua siguiendo el formato INACAL. Incluye
+generación individual, por lotes, exportación a múltiples formatos, y búsqueda de
+códigos históricos.
+
+Formato Estándar INACAL:
+    XXXX999999 (4 letras mayúsculas + 6 dígitos = 10 caracteres)
+    Ejemplo: ABCD123456
+
+Features:
+    - Generación de códigos únicos garantizados
+    - Soporte para prefijos personalizados
+    - Generación por lotes con tracking
+    - Exportación a TXT, CSV, Excel
+    - Validación de unicidad contra base de datos
+    - Búsqueda por código o número de serie
+    - Historial completo en base de datos
+
+Examples:
+    Generación simple::
+
+        generator = CodeGenerator()
+        success, code = generator.generate_code()
+        print(f"Código: {code}")  # Ej: XKPA456789
+
+    Generación con prefijo::
+
+        success, code = generator.generate_code(prefix="AGUA")
+        print(f"Código: {code}")  # Ej: AGUA456789
+
+    Generación por lotes::
+
+        codes, errors = generator.generate_batch(
+            count=100,
+            article_prefix="Medidor",
+            save_to_db=True
+        )
+        print(f"Generados: {len(codes)} códigos")
+
+Author:
+    SGDI Development Team
+
+Version:
+    1.0.0
 """
 
 import random
@@ -19,24 +63,71 @@ log = get_logger(__name__)
 
 
 class CodeGenerator:
-    """Generador de códigos únicos INACAL."""
+    """Generador profesional de códigos de seguridad INACAL para medidores.
+    
+    Genera códigos alfanuméricos únicos siguiendo el formato INACAL (4 letras + 6 números).
+    Todos los códigos generados se validan contra la base de datos para garantizar unicidad.
+    Soporta generación individual, por lotes, y exportación a múltiples formatos.
+    
+    Attributes:
+        db: Instancia de la base de datos para registro y validación de códigos
+    
+    Example:
+        >>> generator = CodeGenerator()
+        >>> success, code = generator.generate_code()
+        >>> if success:
+        ...     print(f"Código generado: {code}")
+    
+    Note:
+        - Todos los códigos se validan automáticamente
+        - La unicidad se garantiza consultando la base de datos
+        - Los códigos históricos nunca se repiten
+    """
     
     def __init__(self):
-        """Inicializa el generador."""
+        """Inicializa el generador de códigos.
+        
+        Configura la conexión a la base de datos para validación y registro
+        de códigos generados.
+        """
         self.db = get_db()
     
     def generate_code(self, 
                      prefix: str = "",
                      length: int = 10) -> Tuple[bool, str]:
-        """
-        Genera un código único.
+        """Genera un código de seguridad único alfanumérico.
+        
+        Crea un código siguiendo el formato INACAL (4 letras + 6 números) o
+        personalizado con prefijo. Valida automáticamente contra la base de datos
+        para garantizar unicidad. Reintenta hasta 3 veces si encuentra duplicados.
         
         Args:
-            prefix: Prefijo opcional (máx 4 letras)
-            length: Longitud total del código (default 10)
+            prefix (str, optional): Prefijo personalizado (máximo 4 letras mayúsculas).
+                Si se especifica, el resto se completa con números.
+                Defaults to "" (usa formato estándar).
+            length (int, optional): Longitud total del código.
+                Defaults to 10 (formato INACAL).
             
         Returns:
-            Tupla (éxito, código)
+            Tuple[bool, str]: Una tupla con:
+                - bool: True si la generación fue exitosa, False si falló
+                - str: Código generado si exitoso, mensaje de error si falló
+        
+        Examples:
+            >>> generator = CodeGenerator()
+            >>> success, code = generator.generate_code()
+            >>> print(code)  # Ej: XKPA123456
+            
+            >>> success, code = generator.generate_code(prefix="AGUA")
+            >>> print(code)  # Ej: AGUA123456
+            
+            >>> success, code = generator.generate_code(prefix="MED", length=10)
+            >>> print(code)  # Ej: MED1234567
+        
+        Note:
+            - El prefijo se convierte automáticamente a mayúsculas
+            - Si no se puede generar código único tras 3 intentos, retorna error
+            - Los códigos se validan con validate_inacal_code() antes de retornar
         """
         try:
             if prefix:
@@ -81,17 +172,48 @@ class CodeGenerator:
                       prefix: str = "",
                       article_prefix: str = "Artículo",
                       save_to_db: bool = True) -> Tuple[List[str], List[str]]:
-        """
-        Genera múltiples códigos únicos.
+        """Genera múltiples códigos de seguridad INACAL en lote.
+        
+        Procesa la generación de múltiples códigos secuencialmente, validando
+        unicidad para cada uno. Opcionalmente guarda cada código en la base de datos
+        con su artículo asociado. Registra estadísticas completas de la operación.
         
         Args:
-            count: Cantidad de códigos a generar
-            prefix: Prefijo opcional para códigos
-            article_prefix: Prefijo para nombre de artículo
-            save_to_db: Si se guardan en BD
+            count (int): Cantidad de códigos a generar. Debe ser mayor a 0.
+            prefix (str, optional): Prefijo común para todos los códigos
+                (máximo 4 letras). Defaults to "" (formato estándar).
+            article_prefix (str, optional): Prefijo para nombres de artículos.
+                Se concatena con el número secuencial (ej: "Medidor 1").
+                Defaults to "Artículo".
+            save_to_db (bool, optional): Si es True, guarda cada código generado
+                exitosamente en la base de datos. Defaults to True.
             
         Returns:
-            Tupla (códigos_exitosos, errores)
+            Tuple[List[str], List[str]]: Una tupla con dos listas:
+                - List[str]: Códigos generados exitosamente
+                - List[str]: Mensajes de error para códigos fallidos
+        
+        Examples:
+            >>> generator = CodeGenerator()
+            >>> codes, errors = generator.generate_batch(
+            ...     count=100,
+            ...     article_prefix="Medidor",
+            ...     save_to_db=True
+            ... )
+            >>> print(f"Exitosos: {len(codes)}, Fallidos: {len(errors)}")
+            
+            >>> # Con prefijo personalizado
+            >>> codes, errors = generator.generate_batch(
+            ...     count=50,
+            ...     prefix="AGUA",
+            ...     save_to_db=False
+            ... )
+        
+        Note:
+            - Si save_to_db es False, los códigos NO se guardan automáticamente
+            - Los errores no detienen el proceso, continúa con los siguientes
+            - Se registra el tiempo total y estadísticas completas
+            - Se recomienda save_to_db=True para evitar duplicados futuros
         """
         import time
         start_time = time.time()
@@ -137,16 +259,44 @@ class CodeGenerator:
                       codes: List[str],
                       output_path: str | Path,
                       format: str = "txt") -> Tuple[bool, str]:
-        """
-        Exporta códigos a archivo.
+        """Exporta una lista de códigos a archivo en el formato especificado.
+        
+        Guarda los códigos generados en un archivo de texto, CSV o Excel.
+        Para CSV y Excel, incluye columnas adicionales con numeración de artículos.
         
         Args:
-            codes: Lista de códigos
-            output_path: Ruta de salida
-            format: Formato (txt, csv, excel)
+            codes (List[str]): Lista de códigos a exportar.
+            output_path (str | Path): Ruta completa del archivo de salida.
+                La extensión se ajusta automáticamente según el formato.
+            format (str, optional): Formato de exportación:
+                - "txt": Un código por línea
+                - "csv": Tabla con columnas "Código" y "Artículo"
+                - "excel": Archivo .xlsx con columnas "Código" y "Artículo"
+                Defaults to "txt".
             
         Returns:
-            Tupla (éxito, mensaje)
+            Tuple[bool, str]: Una tupla con:
+                - bool: True si la exportación fue exitosa, False si falló
+                - str: Ruta del archivo generado si exitoso, mensaje de error si falló
+        
+        Examples:
+            >>> codes = ["ABCD123456", "EFGH789012"]
+            >>> success, path = generator.export_to_file(
+            ...     codes,
+            ...     "./exports/codigos.txt",
+            ...     format="txt"
+            ... )
+            
+            >>> success, path = generator.export_to_file(
+            ...     codes,
+            ...     "./exports/codigos.xlsx",
+            ...     format="excel"
+            ... )
+        
+        Note:
+            - El directorio padre debe existir antes de exportar
+            - Para Excel se requiere la librería pandas y openpyxl
+            - Los archivos existentes se sobrescriben sin confirmación
         """
         try:
             output_path = Path(output_path)
@@ -184,31 +334,74 @@ class CodeGenerator:
             return False, error_msg
     
     def verify_uniqueness(self, code: str) -> bool:
-        """
-        Verifica si un código es único.
+        """Verifica si un código es único en la base de datos.
+        
+        Consulta la base de datos para determinar si un código ya existe.
+        Útil para validar códigos generados externamente antes de guardarlos.
         
         Args:
-            code: Código a verificar
+            code (str): Código de seguridad a verificar.
             
         Returns:
-            True si es único, False si ya existe
+            bool: True si el código es único (no existe en BD),
+                False si ya existe.
+        
+        Example:
+            >>> generator = CodeGenerator()
+            >>> is_unique = generator.verify_uniqueness("ABCD123456")
+            >>> if is_unique:
+            ...     print("Código disponible")
+            ... else:
+            ...     print("Código ya existe")
+        
+        Note:
+            Este método solo consulta, no guarda el código en la base de datos.
         """
         return not self.db.code_exists(code)
     
     def get_total_codes(self) -> int:
-        """Obtiene el total de códigos en BD."""
+        """Obtiene el total de códigos almacenados en la base de datos.
+        
+        Cuenta todos los códigos registrados históricamente, incluyendo
+        códigos generados por el sistema y migrados desde Excel.
+        
+        Returns:
+            int: Número total de códigos en la base de datos.
+        
+        Example:
+            >>> generator = CodeGenerator()
+            >>> total = generator.get_total_codes()
+            >>> print(f"Total de códigos: {total:,}")
+        """
         codes = self.db.get_all_codes()
         return len(codes)
     
     def search_by_code(self, code: str) -> Optional[dict]:
-        """
-        Busca información por código de seguridad.
+        """Busca información completa de un código de seguridad específico.
+        
+        Consulta la base de datos para obtener todos los datos asociados
+        a un código de seguridad, incluyendo número de serie del medidor,
+        tipo de servicio y fecha de creación.
         
         Args:
-            code: Código de seguridad a buscar
+            code (str): Código de seguridad a buscar (formato INACAL).
             
         Returns:
-            Diccionario con la información o None si no existe
+            Optional[dict]: Diccionario con los campos:
+                - code (str): Código de seguridad
+                - meter_serial (str): Número de serie del medidor
+                - service_type (str): Tipo de servicio
+                - created_at (datetime): Fecha y hora de creación
+                Retorna None si el código no existe.
+        
+        Example:
+            >>> generator = CodeGenerator()
+            >>> info = generator.search_by_code("ABCD123456")
+            >>> if info:
+            ...     print(f"Medidor: {info['meter_serial']}")
+            ...     print(f"Creado: {info['created_at']}")
+            ... else:
+            ...     print("Código no encontrado")
         """
         result = self.db.fetch_one(
             """
@@ -221,14 +414,35 @@ class CodeGenerator:
         return result
     
     def search_by_meter_serial(self, meter_serial: str) -> List[dict]:
-        """
-        Busca códigos por número de serie del medidor.
+        """Busca todos los códigos asociados a un número de serie de medidor.
+        
+        Realiza una búsqueda parcial (LIKE) en la base de datos para encontrar
+        todos los códigos asociados a un medidor específico. Útil para rastrear
+        el historial de códigos de un medidor.
         
         Args:
-            meter_serial: Número de serie a buscar
+            meter_serial (str): Número de serie del medidor a buscar.
+                Soporta búsqueda parcial (no requiere coincidencia exacta).
             
         Returns:
-            Lista de diccionarios con los códigos encontrados
+            List[dict]: Lista de diccionarios, cada uno con:
+                - code (str): Código de seguridad
+                - meter_serial (str): Número de serie del medidor
+                - service_type (str): Tipo de servicio
+                - created_at (datetime): Fecha y hora de creación
+                Ordenados por fecha (más recientes primero).
+                Lista vacía si no se encuentran resultados.
+        
+        Example:
+            >>> generator = CodeGenerator()
+            >>> results = generator.search_by_meter_serial("12345")
+            >>> print(f"Encontrados {len(results)} códigos")
+            >>> for item in results:
+            ...     print(f"{item['code']} - {item['created_at']}")
+        
+        Note:
+            - La búsqueda es case-insensitive y permite coincidencias parciales
+            - Los resultados se ordenan cronológicamente (más recientes primero)
         """
         results = self.db.fetch_all(
             """

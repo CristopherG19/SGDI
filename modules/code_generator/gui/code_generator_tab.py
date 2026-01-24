@@ -2,7 +2,33 @@
 SGDI - Tab Generador de Códigos INACAL
 =======================================
 
-Generador de códigos de seguridad para medidores de agua.
+Interfaz gráfica para generación de códigos de seguridad para medidores de agua.
+
+Este módulo proporciona una interfaz completa para generar códigos de seguridad
+INACAL, con funcionalidades de generación masiva, importación de números de serie,
+búsqueda de códigos, exportación a Excel, y visualización en tabla.
+
+Features:
+    - Generación de códigos individuales o masivos
+    - Importación de números de serie desde Excel/CSV
+    - Búsqueda de códigos por código o número de serie
+    - Exportación de resultados a Excel
+    - Visualización en tabla con 3 columnas (Artículo, Nº Serie, Código)
+    - Copiado rápido de códigos al portapapeles
+    - Contador de códigos en tiempo real
+    - Guardado automático en base de datos
+
+UI Components:
+    - Panel de búsqueda: consulta de códigos históricos
+    - Panel de entrada: texto manual o importación de archivo
+    - Panel de resultados: tabla con códigos generados
+    - Panel de acciones: exportar, copiar, guardar
+
+Author:
+    SGDI Development Team
+
+Version:
+    1.0.0
 """
 
 import tkinter as tk
@@ -22,10 +48,48 @@ log = get_logger(__name__)
 
 
 class CodeGeneratorTab(ttk.Frame):
-    """Tab para generación de códigos de seguridad para medidores."""
+    """Tab GUI para generación de códigos de seguridad INACAL para medidores.
+    
+    Proporciona una interfaz completa para generar códigos de seguridad alfanuméricos
+    únicos para medidores de agua. Soporta entrada manual de números de serie,
+    importación desde Excel/CSV, generación masiva, búsqueda de códigos históricos,
+    y exportación de resultados.
+    
+    Attributes:
+        generator (CodeGenerator): Instancia del servicio generador de códigos
+        generated_data (list): Lista de tuplas (articulo, serie, codigo) generadas
+        meter_serials (tk.StringVar): Variable para entrada de números de serie
+        count_var (tk.StringVar): Variable para contador de series ingresadas
+    
+    Example:
+        >>> from tkinter import Tk
+        >>> root = Tk()
+        >>> tab = CodeGeneratorTab(root)
+        >>> tab.pack()
+    
+    Workflow:
+        1. Usuario ingresa números de serie (manual o importación)
+        2. Click en "Generar Códigos"
+        3. Sistema genera códigos únicos para cada serie
+        4. Resultados se muestran en tabla
+        5. Usuario puede copiar, exportar o guardar en BD
+    
+    Note:
+        - Los códigos se generan automáticamente sin duplicados
+        - Se validan contra la base de datos antes de generarse
+        - Los códigos se pueden buscar posteriormente por código o serie
+    """
     
     def __init__(self, parent):
-        """Inicializa el tab."""
+        """Inicializa el tab generador de códigos con todos sus componentes.
+        
+        Configura las variables de control, instancia el servicio generador,
+        y construye la interfaz gráfica completa con paneles de búsqueda,
+        entrada, resultados y acciones.
+        
+        Args:
+            parent (tk.Widget): Widget padre (generalmente un Notebook o Frame).
+        """
         super().__init__(parent, padding=20)
         
         self.generator = CodeGenerator()
