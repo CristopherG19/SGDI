@@ -74,12 +74,12 @@ def demo_logging():
 
 def demo_database():
     """Demuestra las operaciones de base de datos."""
-    print_section("3. BASE DE DATOS SQLITE")
+    print_section("3. BASE DE DATOS MYSQL")
     
     db = get_db()
     
-    print(f"\n💾 Base de datos: {db.db_path}")
-    print(f"   Estado: {'✓ Conectada' if Path(db.db_path).exists() else '✗ No encontrada'}")
+    print(f"\n💾 Base de datos: MySQL ({db.db_config['host']}:{db.db_config['port']}/{db.db_config['database']})")
+    print(f"   Estado: {'✓ Conectada' if db.connection and db.connection.is_connected() else '✗ Desconectada'}")
     
     # Insertar códigos de prueba
     print("\n📝 Insertando códigos de prueba...")
@@ -264,7 +264,7 @@ def print_summary():
     print(f"\n📊 Estado Actual del Sistema:")
     print(f"   - Códigos en BD: {stats.get('total_codes_generated', 0)}")
     print(f"   - Logs generados: {len(db.get_recent_logs(100))}")
-    print(f"   - Base de datos: {Path(db.db_path).stat().st_size / 1024:.1f} KB")
+    # Tamaño de BD (remover línea de tamaño de archivo)
     
     print(f"\n🎯 Fase 1 - COMPLETADA AL 100%")
     print(f"   Todos los componentes core están funcionando correctamente.")

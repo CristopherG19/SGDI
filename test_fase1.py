@@ -40,7 +40,7 @@ try:
     from core.database.simple_db import get_db
     
     db = get_db()
-    print(f"   ✓ Base de datos inicializada: {db.db_path}")
+    print(f"   ✓ Base de datos MySQL conectada: {db.db_config['database']}")
     
     # Probar inserción
     test_code = "TEST123456"
@@ -103,7 +103,7 @@ print("="*60)
 print("\nComponentes verificados:")
 print("  ✓ Configuración (Settings)")
 print("  ✓ Sistema de logging (loguru)")
-print("  ✓ Base de datos SQLite")
+print("  ✓ Base de datos MySQL")
 print("  ✓ Utilidades de archivos")
 print("  ✓ Validadores")
 print("\n🚀 Sistema listo para continuar con Fase 2: GUI")
