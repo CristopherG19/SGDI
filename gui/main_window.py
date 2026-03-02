@@ -5,6 +5,7 @@ SGDI - Ventana Principal
 Ventana principal de la aplicación con sidebar de navegación y área de contenido.
 """
 
+import importlib
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -31,6 +32,7 @@ class MainWindow:
         self.root = root
         self.current_tab = None
         self.tabs: Dict[str, ttk.Frame] = {}
+        self._status_timer_id = None
         
         # Configurar ventana
         self._configure_window()
@@ -92,52 +94,45 @@ class MainWindow:
         self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew")
     
     def _register_modules(self):
-        """Registra todos los módulos disponibles."""
-        # Importar módulos dinámicamente cuando estén listos
-        # Por ahora, usamos el dashboard como ejemplo
-        
-        from modules.dashboard.gui.dashboard_tab import DashboardTab
-        from modules.qr_suite.gui.generador_qr_tab import GeneradorQRTab
-        from modules.qr_suite.gui.lector_qr_tab import LectorQRTab
-        from modules.qr_suite.gui.procesador_excel_tab import ProcesadorExcelTab
-        from modules.code_generator.gui.code_generator_tab import CodeGeneratorTab
-        from modules.file_management.gui.file_search_tab import FileSearchTab
-        from modules.pdf_tools.gui.pdf_compressor_tab import PDFCompressorTab
-        from modules.file_auditor.gui.auditor_tab import FileAuditorTab
-        from modules.dropbox_extractor.gui.dropbox_extractor_tab import DropboxExtractorTab
-        
-        self.register_tab("dashboard", "Dashboard", DashboardTab)
-        self.register_tab("qr_generator", "Generador QR", GeneradorQRTab)
-        self.register_tab("qr_reader", "Lector QR", LectorQRTab)
-        self.register_tab("excel_processor", "Procesador Excel", ProcesadorExcelTab)
-        self.register_tab("file_search", "Buscador Archivos", FileSearchTab)
-        self.register_tab("pdf_compressor", "Compresor PDF", PDFCompressorTab)
-        self.register_tab("file_auditor", "Auditor Archivos", FileAuditorTab)
-        self.register_tab("code_generator", "Códigos INACAL", CodeGeneratorTab)
-        self.register_tab("dropbox_extractor", "Extractor Dropbox", DropboxExtractorTab)
-        
-        # TODO: Agregar otros módulos cuando estén implementados
-        # self.register_tab("qr_suite", "Suite QR", QRSuiteTab)
-        # self.register_tab("file_management", "Archivos", FileManagementTab)
-        # self.register_tab("pdf_tools", "PDF", PDFToolsTab)
-        # self.register_tab("file_auditor", "Auditoría", FileAuditorTab)
-        # self.register_tab("code_generator", "Códigos", CodeGeneratorTab)
+        """Registra todos los módulos disponibles con lazy imports."""
+        # Solo se almacena la ruta del módulo y el nombre de la clase.
+        # La importación real ocurre cuando el usuario accede al tab.
+        self.register_tab("dashboard", "Dashboard",
+            "modules.dashboard.gui.dashboard_tab", "DashboardTab")
+        self.register_tab("qr_generator", "Generador QR",
+            "modules.qr_suite.gui.generador_qr_tab", "GeneradorQRTab")
+        self.register_tab("qr_reader", "Lector QR",
+            "modules.qr_suite.gui.lector_qr_tab", "LectorQRTab")
+        self.register_tab("excel_processor", "Procesador Excel",
+            "modules.qr_suite.gui.procesador_excel_tab", "ProcesadorExcelTab")
+        self.register_tab("file_search", "Buscador Archivos",
+            "modules.file_management.gui.file_search_tab", "FileSearchTab")
+        self.register_tab("pdf_compressor", "Compresor PDF",
+            "modules.pdf_tools.gui.pdf_compressor_tab", "PDFCompressorTab")
+        self.register_tab("file_auditor", "Auditor Archivos",
+            "modules.file_auditor.gui.auditor_tab", "FileAuditorTab")
+        self.register_tab("code_generator", "Códigos INACAL",
+            "modules.code_generator.gui.code_generator_tab", "CodeGeneratorTab")
+        self.register_tab("dropbox_extractor", "Extractor Dropbox",
+            "modules.dropbox_extractor.gui.dropbox_extractor_tab", "DropboxExtractorTab")
     
-    def register_tab(self, tab_id: str, tab_name: str, tab_class: type):
+    def register_tab(self, tab_id: str, tab_name: str, module_path: str, class_name: str):
         """
-        Registra un nuevo tab en la aplicación.
+        Registra un nuevo tab en la aplicación (lazy import).
         
         Args:
             tab_id: ID único del tab
             tab_name: Nombre a mostrar
-            tab_class: Clase del tab (debe aceptar parent en __init__)
+            module_path: Ruta del módulo Python (e.g. 'modules.dashboard.gui.dashboard_tab')
+            class_name: Nombre de la clase dentro del módulo (e.g. 'DashboardTab')
         """
         try:
-            # Crear instancia del tab (lazy loading)
             self.tabs[tab_id] = {
                 'name': tab_name,
-                'class': tab_class,
-                'instance': None  # Se crea cuando se muestra por primera vez
+                'module_path': module_path,
+                'class_name': class_name,
+                'class': None,      # Se importa cuando se necesita
+                'instance': None    # Se crea cuando se muestra por primera vez
             }
             log.debug(f"Tab registrado: {tab_id} - {tab_name}")
         except Exception as e:
@@ -161,6 +156,12 @@ class MainWindow:
                 current_instance = self.tabs[self.current_tab]['instance']
                 if hasattr(current_instance, 'grid_forget'):
                     current_instance.grid_forget()
+            
+            # Lazy import: importar la clase solo la primera vez que se necesita
+            if self.tabs[tab_id]['class'] is None:
+                mod = importlib.import_module(self.tabs[tab_id]['module_path'])
+                self.tabs[tab_id]['class'] = getattr(mod, self.tabs[tab_id]['class_name'])
+                log.debug(f"Módulo importado: {tab_id}")
             
             # Crear instancia del tab si no existe (lazy loading)
             if self.tabs[tab_id]['instance'] is None:
@@ -209,8 +210,15 @@ class MainWindow:
             self.status_bar.config(bootstyle="inverse-secondary")
         
         # Auto-resetear después de 5 segundos (excepto errores)
-        if style != "danger":
-            self.root.after(5000, lambda: self.set_status_message("Listo"))
+        # Cancelar timer anterior para evitar acumulación infinita
+        if self._status_timer_id is not None:
+            self.root.after_cancel(self._status_timer_id)
+            self._status_timer_id = None
+        
+        if style != "danger" and message != "Listo":
+            self._status_timer_id = self.root.after(
+                5000, lambda: self.set_status_message("Listo")
+            )
     
     def refresh_current_tab(self):
         """Refresca el tab actual."""

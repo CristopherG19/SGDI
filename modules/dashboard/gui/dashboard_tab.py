@@ -38,8 +38,8 @@ class DashboardTab(ttk.Frame):
         self._create_charts()
         self._create_activity_section()
         
-        # Cargar datos iniciales
-        self.refresh()
+        # Cargar datos iniciales (diferido para no bloquear la GUI)
+        self.after(200, self.refresh)
         
         log.debug("Dashboard avanzado inicializado")
     

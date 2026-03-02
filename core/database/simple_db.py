@@ -12,7 +12,6 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import json
 import threading
-import sqlite3
 
 try:
     import mysql.connector
@@ -78,7 +77,26 @@ class Database:
             self.connection = None
     
     def _initialize_database(self):
-        """Inicializa la base de datos ejecutando el schema_mysql.sql"""
+        """Inicializa la base de datos ejecutando el schema_mysql.sql (solo si es necesario)."""
+        try:
+            self.connect()
+            
+            # Verificar si las tablas ya existen para evitar re-ejecutar el schema
+            self.cursor.execute(
+                "SELECT COUNT(*) as cnt FROM information_schema.tables "
+                "WHERE table_schema = %s AND table_name = 'system_logs'",
+                (self.db_config['database'],)
+            )
+            result = self.cursor.fetchone()
+            if result and result['cnt'] > 0:
+                print(f"✓ Base de datos MySQL ya inicializada")
+                return
+            
+        except Error as e:
+            print(f"⚠️ Error verificando BD: {e}")
+            return
+        
+        # Primera ejecución: aplicar schema completo
         schema_path = Path(__file__).parent / "schema_mysql.sql"
         
         if not schema_path.exists():
@@ -89,8 +107,6 @@ class Database:
             with open(schema_path, 'r', encoding='utf-8') as f:
                 schema_sql = f.read()
             
-            self.connect()
-            
             # Ejecutar cada statement por separado
             statements = schema_sql.split(';')
             for statement in statements:
@@ -99,9 +115,8 @@ class Database:
                     try:
                         self.cursor.execute(statement)
                     except Error as e:
-                        # Ignorar errores de "ya existe" o vistas que ya fueron creadas
                         if "already exists" not in str(e).lower():
-                            pass  # Continuar con el siguiente statement
+                            pass
             
             self.connection.commit()
             print(f"✓ Base de datos MySQL inicializada correctamente")
