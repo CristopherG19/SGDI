@@ -1,4 +1,0 @@
-DROPBOX_REFRESH_TOKEN=-dwix95nICYAAAAAAAAAAQs7juyuoLdAOw2I93ISwHLJFMmbmtMcC3hccL3tragN
-
-SQL para WordPress:
-UPDATE wp_dropbox_tokens SET refresh_token = '-dwix95nICYAAAAAAAAAAQs7juyuoLdAOw2I93ISwHLJFMmbmtMcC3hccL3tragN' WHERE id = 1;
