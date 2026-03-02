@@ -11,6 +11,6 @@ echo.
 pause
 
 cd /d "%~dp0"
-venv\Scripts\python.exe migrar_codigos_historicos.py
+..\venv\Scripts\python.exe migrar_codigos_historicos.py
 
 pause
