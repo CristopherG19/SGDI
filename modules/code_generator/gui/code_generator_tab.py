@@ -204,7 +204,12 @@ class CodeGeneratorTab(ttk.Frame):
                 result = self.generator.search_by_code(search_text)
                 
                 if result:
-                    fecha = result['created_at'].split()[0] if result['created_at'] else "N/A"
+                    # MySQL devuelve datetime object, no string
+                    created = result['created_at']
+                    if created:
+                        fecha = created.strftime('%Y-%m-%d') if hasattr(created, 'strftime') else str(created).split()[0]
+                    else:
+                        fecha = "N/A"
                     self.search_result_label.config(
                         text=f"✅ Encontrado:\n"
                              f"Código: {result['code']}\n"
@@ -228,7 +233,11 @@ class CodeGeneratorTab(ttk.Frame):
                 if results:
                     if len(results) == 1:
                         r = results[0]
-                        fecha = r['created_at'].split()[0] if r['created_at'] else "N/A"
+                        created = r['created_at']
+                        if created:
+                            fecha = created.strftime('%Y-%m-%d') if hasattr(created, 'strftime') else str(created).split()[0]
+                        else:
+                            fecha = "N/A"
                         self.search_result_label.config(
                             text=f"✅ Encontrado:\n"
                                  f"Nro Serie: {r['meter_serial']}\n"
@@ -239,7 +248,11 @@ class CodeGeneratorTab(ttk.Frame):
                             font=("Segoe UI", 10, "bold")
                         )
                     else:
-                        codes_list = "\n".join([f"  • {r['code']} ({r['service_type']}) - {r['created_at'].split()[0]}" 
+                        def format_date(dt):
+                            if dt:
+                                return dt.strftime('%Y-%m-%d') if hasattr(dt, 'strftime') else str(dt).split()[0]
+                            return "N/A"
+                        codes_list = "\n".join([f"  • {r['code']} ({r['service_type']}) - {format_date(r['created_at'])}" 
                                                for r in results[:5]])
                         self.search_result_label.config(
                             text=f"✅ {len(results)} códigos encontrados:\n{codes_list}" +

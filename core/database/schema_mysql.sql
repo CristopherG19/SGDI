@@ -107,6 +107,23 @@ CREATE TABLE IF NOT EXISTS system_logs (
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabla de URLs de Dropbox
+-- Almacena URLs compartidas de archivos en Dropbox
+CREATE TABLE IF NOT EXISTS dropbox_urls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    file_path VARCHAR(1000) UNIQUE NOT NULL,
+    file_name VARCHAR(500) NOT NULL,
+    folder_type VARCHAR(50),  -- 'INICIAL', 'POSTERIOR', 'DESCONOCIDO'
+    shared_url VARCHAR(1000) NOT NULL,
+    file_size BIGINT,
+    modified_date DATETIME,
+    extraction_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    INDEX idx_folder_type (folder_type),
+    INDEX idx_extraction_date (extraction_date),
+    INDEX idx_file_path (file_path(255))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ===================================
 -- VISTAS
 -- ===================================

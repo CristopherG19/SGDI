@@ -116,6 +116,12 @@ class Sidebar(ttk.Frame):
                 'text': 'Códigos',
                 'description': 'INACAL'
             },
+            {
+                'id': 'dropbox_extractor',
+                'icon': '☁️',
+                'text': 'Dropbox',
+                'description': 'Extractor de URLs'
+            },
         ]
         
         # Crear botones
