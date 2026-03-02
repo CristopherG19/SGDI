@@ -104,6 +104,7 @@ class MainWindow:
         from modules.file_management.gui.file_search_tab import FileSearchTab
         from modules.pdf_tools.gui.pdf_compressor_tab import PDFCompressorTab
         from modules.file_auditor.gui.auditor_tab import FileAuditorTab
+        from modules.dropbox_extractor.gui.dropbox_extractor_tab import DropboxExtractorTab
         
         self.register_tab("dashboard", "Dashboard", DashboardTab)
         self.register_tab("qr_generator", "Generador QR", GeneradorQRTab)
@@ -113,6 +114,7 @@ class MainWindow:
         self.register_tab("pdf_compressor", "Compresor PDF", PDFCompressorTab)
         self.register_tab("file_auditor", "Auditor Archivos", FileAuditorTab)
         self.register_tab("code_generator", "Códigos INACAL", CodeGeneratorTab)
+        self.register_tab("dropbox_extractor", "Extractor Dropbox", DropboxExtractorTab)
         
         # TODO: Agregar otros módulos cuando estén implementados
         # self.register_tab("qr_suite", "Suite QR", QRSuiteTab)

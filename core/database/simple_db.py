@@ -6,13 +6,20 @@ Módulo para gestión de base de datos MySQL.
 Proporciona métodos CRUD básicos y manejo de conexiones.
 """
 
-import mysql.connector
-from mysql.connector import Error
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import json
+import threading
+import sqlite3
+
+try:
+    import mysql.connector
+    from mysql.connector import Error
+except ImportError as e:
+    # Fallback or re-raise
+    raise e
 
 from config.settings import Settings
 
@@ -344,7 +351,128 @@ class Database:
         """Obtiene estadísticas para el dashboard."""
         return self.fetch_one("SELECT * FROM v_dashboard_stats") or {}
     
+    def save_dropbox_url(self, file_path: str, file_name: str, folder_type: str,
+                        shared_url: str, file_size: int = None, modified_date: str = None,
+                        notes: str = None) -> int:
+        """
+        Guarda o actualiza una URL de Dropbox en la base de datos.
+        
+        Args:
+            file_path: Ruta completa del archivo en Dropbox
+            file_name: Nombre del archivo
+            folder_type: Tipo de verificación (INICIAL, POSTERIOR, etc.)
+            shared_url: URL compartida del archivo
+            file_size: Tamaño del archivo en bytes
+            modified_date: Fecha de modificación del archivo
+            notes: Notas adicionales
+            
+        Returns:
+            ID del registro insertado o actualizado
+        """
+        # Verificar si ya existe
+        existing = self.fetch_one(
+            "SELECT id FROM dropbox_urls WHERE file_path = %s",
+            (file_path,)
+        )
+        
+        data = {
+            'file_path': file_path,
+            'file_name': file_name,
+            'folder_type': folder_type,
+            'shared_url': shared_url,
+            'file_size': file_size,
+            'modified_date': modified_date,
+            'extraction_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'notes': notes
+        }
+        
+        if existing:
+            # Actualizar registro existente
+            self.update('dropbox_urls', data, 'file_path = %s', (file_path,))
+            return existing['id']
+        else:
+            # Insertar nuevo registro
+            return self.insert('dropbox_urls', data)
+    
+    def get_dropbox_urls(self, filters: Dict = None) -> List[Dict[str, Any]]:
+        """
+        Obtiene URLs de Dropbox según filtros.
+        
+        Args:
+            filters: Diccionario con filtros opcionales:
+                - folder_type: Tipo de verificación
+                - date_from: Fecha desde
+                - date_to: Fecha hasta
+                - folder_pattern: Patrón de búsqueda en ruta
+                
+        Returns:
+            Lista de URLs encontradas
+        """
+        query = "SELECT * FROM dropbox_urls WHERE 1=1"
+        params = []
+        
+        if filters:
+            # Filtro por tipo de carpeta
+            if filters.get('folder_type'):
+                query += " AND folder_type = %s"
+                params.append(filters['folder_type'])
+            
+            # Filtro por rango de fechas
+            if filters.get('date_from'):
+                query += " AND modified_date >= %s"
+                params.append(filters['date_from'])
+            
+            if filters.get('date_to'):
+                query += " AND modified_date <= %s"
+                params.append(filters['date_to'])
+            
+            # Filtro por patrón en la ruta
+            if filters.get('folder_pattern'):
+                query += " AND file_path LIKE %s"
+                params.append(f"%{filters['folder_pattern']}%")
+        
+        query += " ORDER BY extraction_date DESC"
+        
+        return self.fetch_all(query, tuple(params))
+    
+    def get_dropbox_url_by_path(self, file_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Obtiene la URL de un archivo específico por su ruta.
+        
+        Args:
+            file_path: Ruta del archivo en Dropbox
+            
+        Returns:
+            Diccionario con información de la URL o None
+        """
+        return self.fetch_one(
+            "SELECT * FROM dropbox_urls WHERE file_path = %s",
+            (file_path,)
+        )
+    
+    def clear_dropbox_urls(self) -> int:
+        """
+        Elimina todas las URLs de Dropbox almacenadas.
+        
+        Returns:
+            Número de registros eliminados
+        """
+        return self.delete('dropbox_urls', '1=1')
+    
+    def export_dropbox_urls_to_dict(self, filters: Dict = None) -> List[Dict]:
+        """
+        Exporta URLs de Dropbox como lista de diccionarios.
+        
+        Args:
+            filters: Filtros opcionales
+            
+        Returns:
+            Lista de diccionarios con URLs
+        """
+        return self.get_dropbox_urls(filters)
+    
     def get_recent_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
+
         """Obtiene los logs más recientes."""
         return self.fetch_all(
             f"SELECT * FROM v_recent_logs LIMIT %s",

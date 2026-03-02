@@ -407,7 +407,7 @@ class CodeGenerator:
             """
             SELECT code, meter_serial, service_type, created_at
             FROM generated_codes
-            WHERE code = ?
+            WHERE code = %s
             """,
             (code,)
         )
@@ -448,7 +448,7 @@ class CodeGenerator:
             """
             SELECT code, meter_serial, service_type, created_at
             FROM generated_codes
-            WHERE meter_serial LIKE ?
+            WHERE meter_serial LIKE %s
             ORDER BY created_at DESC
             """,
             (f"%{meter_serial}%",)
