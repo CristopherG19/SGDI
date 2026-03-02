@@ -23,7 +23,7 @@ class StatsAnalyzer:
     
     def get_qr_stats(self, days: int = 30) -> Dict:
         """
-        Obtiene estadísticas de QR generados.
+        Obtiene estadísticas de operaciones QR.
         
         Args:
             days: Días hacia atrás
@@ -32,9 +32,9 @@ class StatsAnalyzer:
             Diccionario con estadísticas
         """
         try:
-            # Total de QRs
+            # Total de operaciones QR
             total = self.db.fetch_one(
-                "SELECT COUNT(*) as count FROM qr_codes"
+                "SELECT COUNT(*) as count FROM qr_operations"
             )
             
             # Por fecha (últimos días)
@@ -42,8 +42,8 @@ class StatsAnalyzer:
             by_date = self.db.fetch_all(
                 """
                 SELECT DATE(created_at) as date, COUNT(*) as count
-                FROM qr_codes
-                WHERE created_at >= ?
+                FROM qr_operations
+                WHERE created_at >= %s
                 GROUP BY DATE(created_at)
                 ORDER BY date
                 """,
@@ -87,7 +87,7 @@ class StatsAnalyzer:
                 """
                 SELECT COUNT(*) as count
                 FROM generated_codes
-                WHERE created_at >= datetime('now', '-7 days')
+                WHERE created_at >= NOW() - INTERVAL 7 DAY
                 """
             )
             
@@ -110,16 +110,16 @@ class StatsAnalyzer:
         try:
             usage = self.db.fetch_all(
                 """
-                SELECT module, COUNT(*) as count
+                SELECT module_name, COUNT(*) as count
                 FROM system_logs
                 WHERE action IS NOT NULL
-                GROUP BY module
+                GROUP BY module_name
                 ORDER BY count DESC
                 LIMIT 10
                 """
             )
             
-            return [(r['module'], r['count']) for r in usage] if usage else []
+            return [(r['module_name'], r['count']) for r in usage] if usage else []
         except Exception as e:
             log.error(f"Error obteniendo uso de módulos: {e}")
             return []
@@ -137,9 +137,8 @@ class StatsAnalyzer:
                 """
                 SELECT 
                     COUNT(*) as total_searches,
-                    SUM(CAST(json_extract(metadata, '$.found') AS INTEGER)) as total_found
-                FROM system_logs
-                WHERE module = 'file_searcher'
+                    COALESCE(SUM(files_found), 0) as total_found
+                FROM file_searches
                 """
             )
             
@@ -147,18 +146,17 @@ class StatsAnalyzer:
             compressions = self.db.fetch_one(
                 """
                 SELECT 
-                    SUM(CAST(json_extract(metadata, '$.compressed') AS INTEGER)) as total_compressed,
-                    SUM(CAST(json_extract(metadata, '$.saved_mb') AS REAL)) as total_saved_mb
-                FROM system_logs
-                WHERE module = 'pdf_compressor'
+                    COALESCE(SUM(files_processed), 0) as total_compressed,
+                    COALESCE(SUM(space_saved_mb), 0) as total_saved_mb
+                FROM pdf_compressions
                 """
             )
             
             return {
                 "searches": searches['total_searches'] if searches else 0,
-                "files_found": searches['total_found'] if searches and searches['total_found'] else 0,
-                "pdfs_compressed": compressions['total_compressed'] if compressions and compressions['total_compressed'] else 0,
-                "space_saved_mb": compressions['total_saved_mb'] if compressions and compressions['total_saved_mb'] else 0
+                "files_found": searches['total_found'] if searches else 0,
+                "pdfs_compressed": compressions['total_compressed'] if compressions else 0,
+                "space_saved_mb": float(compressions['total_saved_mb']) if compressions else 0
             }
         except Exception as e:
             log.error(f"Error obteniendo stats de archivos: {e}")
@@ -182,16 +180,17 @@ class StatsAnalyzer:
         try:
             logs = self.db.fetch_all(
                 """
-                SELECT module, action, message, created_at, success
+                SELECT module_name as module, action, message, created_at,
+                       CASE WHEN level IN ('INFO', 'DEBUG') THEN 1 ELSE 0 END as success
                 FROM system_logs
                 WHERE action IS NOT NULL
                 ORDER BY created_at DESC
-                LIMIT ?
+                LIMIT %s
                 """,
                 (limit,)
             )
             
-            return [dict(log) for log in logs] if logs else []
+            return [dict(log_entry) for log_entry in logs] if logs else []
         except Exception as e:
             log.error(f"Error obteniendo actividad reciente: {e}")
             return []
@@ -210,3 +209,4 @@ class StatsAnalyzer:
             "module_usage": self.get_module_usage(),
             "recent_activity": self.get_recent_activity(5)
         }
+
