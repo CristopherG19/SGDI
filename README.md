@@ -41,7 +41,7 @@ Un sistema unificado de gestión documental que integra 5 herramientas especiali
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/CristopherG19/SGDI.git
 cd SGDI
 ```
 
