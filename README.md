@@ -110,6 +110,7 @@ SGDI/
 ### Integración con Dropbox
 1. Abrir módulo **"Extractor Dropbox"**
 2. Asegurar que las credenciales están configuradas en el archivo `.env`
+   - *Nota: Si necesitas renovar o rotar las credenciales de Dropbox, consulta la [Guía de Renovación de Credenciales](scripts/auth/renovacion_dropbox.md).*
 3. Seleccionar las carpetas a sincronizar o extraer y procesar localmente
 
 ### Comprimir y Auditar Archivos

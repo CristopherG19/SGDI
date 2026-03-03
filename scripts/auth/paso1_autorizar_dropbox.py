@@ -5,13 +5,22 @@ Script MEJORADO para generar Refresh Token de Dropbox
 Este script crea un servidor temporal que captura automáticamente el código.
 """
 
+import os
 import webbrowser
 from urllib.parse import urlencode, parse_qs, urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+from dotenv import load_dotenv
 
-# Credenciales
-APP_KEY = "woij6xbs2b72ecq"
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+# Credenciales desde variables de entorno
+APP_KEY = os.getenv('DROPBOX_APP_KEY')
+if not APP_KEY:
+    print("❌ Error: DROPBOX_APP_KEY no está configurada en el archivo .env")
+    print("   Copia .env.example a .env y configura tus credenciales.")
+    exit(1)
 
 # Variable global para almacenar el código
 auth_code = None
