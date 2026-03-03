@@ -5,10 +5,18 @@ Script para obtener el Refresh Token desde el código de autorización
 
 import requests
 import os
+from dotenv import load_dotenv
 
-# Credenciales
-APP_KEY = "woij6xbs2b72ecq"
-APP_SECRET = "u16yw43f21nazoo"
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+# Credenciales desde variables de entorno
+APP_KEY = os.getenv('DROPBOX_APP_KEY')
+APP_SECRET = os.getenv('DROPBOX_APP_SECRET')
+if not APP_KEY or not APP_SECRET:
+    print("❌ Error: DROPBOX_APP_KEY y/o DROPBOX_APP_SECRET no están configuradas en el archivo .env")
+    print("   Copia .env.example a .env y configura tus credenciales.")
+    exit(1)
 
 print("=" * 60)
 print("PASO 2: Obtener Refresh Token")
@@ -67,6 +75,8 @@ try:
         f.write(f"UPDATE wp_dropbox_tokens SET refresh_token = '{refresh_token}' WHERE id = 1;\n")
     
     print("\n✅ Token guardado en: nuevo_refresh_token.txt")
+    print("⚠️  IMPORTANTE: Elimina este archivo después de usarlo para evitar fugas de credenciales.")
+    print("   Este archivo NO debe ser subido al repositorio.")
     
     # Limpiar archivo temporal
     if os.path.exists("temp_code.txt"):
