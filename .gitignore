@@ -42,12 +42,17 @@ desktop.ini
 data/database/*.db
 data/logs/*.log
 data/exports/*
+data/config/*
 !data/database/.gitkeep
 !data/logs/.gitkeep
 !data/exports/.gitkeep
+!data/config/.gitkeep
 
 # Configuración local
 .env
+
+# Archivos sensibles de autenticación
+scripts/auth/*.txt
 
 # Builds
 build/
