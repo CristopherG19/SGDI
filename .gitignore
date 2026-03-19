@@ -1,44 +1,48 @@
-# Python
+# === Python & Entornos ===
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
 venv/
-ENV/
 env/
-.venv
+.venv/
+ENV/
+build/
+dist/
+*.egg-info/
+*.egg
+.installed.cfg
 
-# IDE
+# === Seguridad y Secretos (CRÍTICO) ===
+.env
+.env.local
+.env.*
+*.txt
+*.log
+*.key
+*.pem
+# Si necesitas subir algún .txt específico, usa !nombre_archivo.txt
+!requirements.txt 
+
+# === IDEs y Editores ===
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
-# OS
+# === Sistema Operativo ===
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Project specific
+# === Bases de Datos y Datos Locales ===
+*.db
+*.sqlite3
 data/database/*.db
 data/logs/*.log
 data/exports/*
@@ -48,22 +52,16 @@ data/config/*
 !data/exports/.gitkeep
 !data/config/.gitkeep
 
-# Configuración local
-.env
-
-# Archivos sensibles de autenticación
-scripts/auth/*.txt
-
-# Builds
-build/
-dist/
-*.spec
-
-# Testing
+# === Notebooks y Testing ===
+.ipynb_checkpoints
 .pytest_cache/
 .coverage
 htmlcov/
+nosetests.xml
+coverage.xml
+*.stackdump
 
-# Temporal
+# === Carpetas Temporales ===
 *.tmp
 temp/
+tmp/
