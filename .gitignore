@@ -14,16 +14,21 @@ dist/
 *.egg
 .installed.cfg
 
-# === Seguridad y Secretos (CRÍTICO) ===
+# === Seguridad y Secretos ===
 .env
 .env.local
 .env.*
+
+# EXCEPCIÓN: Permitir el archivo de ejemplo
+!.env.example
+
 *.txt
 *.log
 *.key
 *.pem
-# Si necesitas subir algún .txt específico, usa !nombre_archivo.txt
-!requirements.txt 
+
+# EXCEPCIÓN: Permitir archivos de texto necesarios
+!requirements.txt
 
 # === IDEs y Editores ===
 .vscode/
